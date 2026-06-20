@@ -69,9 +69,12 @@ def weibull_pdf(v: float, k: float, a: float) -> float:
 def simple_power_curve(v: float, rated_power_kw: float, cut_in: float = 3.0,
                          rated_speed: float = 12.0, cut_out: float = 25.0) -> float:
     """
-    Simplified cubic power curve model for a generic turbine.
-    Real OEM curves are non-linear lookup tables — this is an MVP
-    approximation pending the turbine preset library.
+    Power curve model approximating real OEM turbine behaviour.
+    Uses a sigmoid-style ramp rather than pure cubic, which better
+    matches published power curves (e.g. Vestas V150, GE Cypress)
+    where output ramps faster through the mid-range than a cubic
+    function predicts. Still an approximation pending the turbine
+    preset library (real OEM lookup tables).
 
     Returns power output in kW at wind speed v.
     """
@@ -79,8 +82,15 @@ def simple_power_curve(v: float, rated_power_kw: float, cut_in: float = 3.0,
         return 0.0
     if v >= rated_speed:
         return rated_power_kw
-    # Cubic ramp between cut-in and rated speed
-    fraction = ((v - cut_in) / (rated_speed - cut_in)) ** 3
+
+    # Normalised position between cut-in and rated speed
+    x = (v - cut_in) / (rated_speed - cut_in)
+
+    # Smoothstep-style curve: steeper ramp through the mid-range than
+    # pure cubic, closer to real turbine behaviour where most OEM curves
+    # reach ~90% of rated power by 80% of the way to rated wind speed
+    fraction = x ** 2 * (3 - 2 * x)  # smoothstep function, range [0,1]
+
     return rated_power_kw * fraction
 
 
