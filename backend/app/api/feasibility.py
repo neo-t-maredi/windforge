@@ -4,8 +4,9 @@
 # composite feasibility view for a candidate site, plus jurisdictional
 # flags for known markets (Netherlands, Saudi Arabia as MVP coverage).
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from app.services.gwa import fetch_wind_resource
+from app.core.limiter import limiter
 from app.services.calculator import (
     air_density,
     air_density_correction_factor,
@@ -41,7 +42,9 @@ JURISDICTION_FLAGS = {
 
 
 @router.get("/")
+@limiter.limit("10/minute")
 async def get_feasibility(
+    request: Request,
     lat: float = Query(..., description="Site latitude", ge=-90, le=90),
     lon: float = Query(..., description="Site longitude", ge=-180, le=180),
     height: int = Query(100, description="Hub height in metres"),
