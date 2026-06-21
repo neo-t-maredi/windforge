@@ -1,0 +1,21 @@
+# docker-compose.yml
+# WindForge local development and deployment orchestration.
+# Runs the FastAPI backend in a container with health checks.
+# Frontend is served separately via Vite dev server or a static build.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
