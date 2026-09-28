@@ -2,13 +2,12 @@
 # Application configuration via environment variables.
 # Uses pydantic-settings for validation and .env file support.
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     APP_ENV: str = "development"
-    GWA_API_BASE_URL: str = "https://globalwindatlas.info/api/gwa/custom"
+    GWA_API_BASE_URL: str = "https://globalwindatlas.info/api/gis/country"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

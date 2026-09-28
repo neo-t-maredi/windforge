@@ -1,0 +1,16 @@
+
+# Local dependencies and generated files
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+.env
+.env.*
+!.env.example
+*.zip
+*.tar.gz

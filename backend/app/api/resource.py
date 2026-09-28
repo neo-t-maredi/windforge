@@ -4,7 +4,7 @@
 # by site coordinates (lat/lon) and hub height.
 
 from fastapi import APIRouter, HTTPException, Query
-from app.services.gwa import fetch_wind_resource
+from app.services.gwa import fetch_wind_resource, ResourceUnavailable
 
 router = APIRouter()
 
@@ -22,4 +22,4 @@ async def get_resource(
         data = await fetch_wind_resource(lat=lat, lon=lon, height=height)
         return data
     except ValueError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502 if isinstance(e, ResourceUnavailable) else 422, detail=str(e)) from e

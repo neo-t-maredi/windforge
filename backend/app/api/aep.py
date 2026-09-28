@@ -5,8 +5,9 @@
 # -> return net AEP following IEC 61400-12-1 aligned methodology.
 
 from fastapi import APIRouter, HTTPException, Query
-from app.services.gwa import fetch_wind_resource
+from app.services.gwa import fetch_wind_resource, ResourceUnavailable
 from app.services.calculator import (
+    validate_curve,
     air_density,
     air_density_correction_factor,
     calculate_gross_aep,
@@ -23,12 +24,12 @@ async def get_aep(
     lat: float = Query(..., description="Site latitude", ge=-90, le=90),
     lon: float = Query(..., description="Site longitude", ge=-180, le=180),
     height: int = Query(100, description="Hub height in metres"),
-    rated_power_kw: float = Query(4200, description="Turbine rated power in kW"),
-    elevation_m: float = Query(0, description="Site elevation above sea level in metres"),
-    temperature_c: float = Query(15.0, description="Site mean annual temperature in Celsius"),
-    cut_in: float = Query(3.0, description="Turbine cut-in wind speed (m/s)"),
-    rated_speed: float = Query(12.0, description="Turbine rated wind speed (m/s)"),
-    cut_out: float = Query(25.0, description="Turbine cut-out wind speed (m/s)"),
+    rated_power_kw: float = Query(4200, gt=0, le=1000000, description="Turbine rated power in kW"),
+    elevation_m: float = Query(0, ge=-500, le=11000, description="Site elevation above sea level in metres"),
+    temperature_c: float = Query(15.0, ge=-100, le=100, description="Site mean annual temperature in Celsius"),
+    cut_in: float = Query(3.0, ge=0, le=100, description="Turbine cut-in wind speed (m/s)"),
+    rated_speed: float = Query(12.0, gt=0, le=100, description="Turbine rated wind speed (m/s)"),
+    cut_out: float = Query(25.0, gt=0, le=100, description="Turbine cut-out wind speed (m/s)"),
 ):
     """
     Calculate Annual Energy Production for a candidate site.
@@ -39,10 +40,16 @@ async def get_aep(
     scaled to match the GWA mean wind speed. This is flagged in the response
     as an approximation pending full Weibull parameter raster integration.
     """
+    if height not in (50, 100, 200):
+        raise HTTPException(422, "Height must be 50, 100 or 200 m")
+    try:
+        validate_curve(rated_power_kw, cut_in, rated_speed, cut_out)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
     try:
         resource = await fetch_wind_resource(lat=lat, lon=lon, height=height)
     except ValueError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502 if isinstance(e, ResourceUnavailable) else 422, detail=str(e)) from e
 
     mean_speed = resource["mean_wind_speed"]
 

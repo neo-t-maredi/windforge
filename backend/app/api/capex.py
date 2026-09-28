@@ -26,9 +26,9 @@ DEFAULT_CAPEX_PER_MW_USD = 1_300_000
 
 @router.get("/")
 def get_capex(
-    rated_power_kw: float = Query(4200, description="Turbine rated power in kW"),
+    rated_power_kw: float = Query(4200, gt=0, le=1000000, description="Turbine rated power in kW"),
     capex_per_mw_usd: float = Query(
-        DEFAULT_CAPEX_PER_MW_USD,
+        DEFAULT_CAPEX_PER_MW_USD, gt=0, le=1e12,
         description="CAPEX per MW in USD. Defaults to industry-typical onshore estimate."
     ),
     terrain_complexity: float = Query(
